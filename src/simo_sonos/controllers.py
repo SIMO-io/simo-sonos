@@ -1,3 +1,5 @@
+import traceback
+import sys
 from simo.multimedia.controllers import BaseAudioPlayer
 from .gateways import SONOSGatewayHandler
 from .forms import SONOSPlayerConfigForm
@@ -28,8 +30,11 @@ class SONOSPlayer(BaseAudioPlayer):
             return
         for plst in sonos_player.soco.get_sonos_playlists():
             if plst.item_id == item_id:
-                sonos_player.soco.clear_queue()
-                sonos_player.soco.add_to_queue(plst)
-                sonos_player.soco.play_from_queue(0, False)
-                sonos_player.soco.play()
+                try:
+                    sonos_player.soco.clear_queue()
+                    sonos_player.soco.add_to_queue(plst)
+                    sonos_player.soco.play_from_queue(0, False)
+                    sonos_player.soco.play()
+                except:
+                    print(traceback.format_exc(), file=sys.stderr)
                 return

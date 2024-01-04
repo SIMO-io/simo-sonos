@@ -16,7 +16,7 @@ class SonosPlaylistInline(admin.TabularInline):
 
 @admin.register(SonosPlayer)
 class SonosPlayerAdmin(admin.ModelAdmin):
-    list_display = 'name', 'ip', 'is_alive', 'last_seen', 'is_master'
+    list_display = '__str__', 'ip', 'is_alive', 'last_seen', 'is_master'
     search_fields = 'name', 'ip'
     readonly_fields = 'name', 'uid', 'is_master', 'slave_of', 'is_alive', 'last_seen'
     fields = readonly_fields

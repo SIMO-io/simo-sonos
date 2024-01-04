@@ -133,7 +133,6 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
 
             del self.playing_alerts[sonos_player.id]
 
-
     def periodic_players_discovery(self):
         # Perform sonos players discovery and state check
         # of non playing players every 10 minutes
@@ -153,10 +152,6 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
 
     def discover_sonos_players(self):
         print("Discover SONOS players.")
-        players = list(discover(allow_network_scan=True))
-        if not players:
-            print("No SONOS players were found on your network!")
-            return
 
         discovered_players = []
         sonos_devices = list(discover(allow_network_scan=True))
@@ -180,7 +175,6 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
             id__in=[p.id for p in discovered_players]
         )
         if missing_players:
-
             print("Let's manually check the missing ones!")
             for missing_player in missing_players:
                 try:

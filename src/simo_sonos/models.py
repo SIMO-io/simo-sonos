@@ -1,10 +1,11 @@
-import inspect
 from django.db import models
-from django.contrib import admin
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from dirtyfields import DirtyFieldsMixin
 from soco import SoCo
 
 
-class SonosPlayer(models.Model):
+class SonosPlayer(DirtyFieldsMixin, models.Model):
     slave_of = models.ForeignKey(
         'SonosPlayer', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='slaves'
@@ -20,7 +21,24 @@ class SonosPlayer(models.Model):
         self.soco = SoCo(self.ip)
 
     def __str__(self):
-        return self.name
+        return f'[{self.id}] {self.name}'
+
+
+@receiver(post_save, sender=SonosPlayer)
+def update_related_components(sender, instance, created, **kwargs):
+    if created:
+        return
+    if 'is_alive' not in instance.get_dirty_fields():
+        return
+    from simo_sonos.gateways import SONOSGatewayHandler
+    from simo.core.models import Component
+    for component in Component.objects.filter(
+        gateway__type=SONOSGatewayHandler.uid, base_type='audio-player',
+    ):
+        if component.config.get('sonos_device') != instance.id:
+            continue
+        component.alive = instance.is_alive
+        component.save()
 
 
 class SonosPlaylist(models.Model):

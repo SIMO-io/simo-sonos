@@ -21,7 +21,7 @@ class SonosPlayer(DirtyFieldsMixin, models.Model):
         self.soco = SoCo(self.ip)
 
     def __str__(self):
-        return f'[{self.id}] {self.name}'
+        return f'{self.name} ({self.uid}) '
 
 
 @receiver(post_save, sender=SonosPlayer)

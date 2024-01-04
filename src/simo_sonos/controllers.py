@@ -9,6 +9,18 @@ class SONOSPlayer(BaseAudioPlayer):
     gateway_class = SONOSGatewayHandler
     config_form = SONOSPlayerConfigForm
 
+    def unjoin(self):
+        from simo_sonos.models import SonosPlayer
+        sonos_player = SonosPlayer.objects.filter(
+            id=self.component.config['sonos_device']
+        ).first()
+        if not sonos_player:
+            return
+        try:
+            sonos_player.soco.unjoin()
+        except:
+            print(traceback.format_exc(), file=sys.stderr)
+
     def play_uri(self, uri, volume=None):
         if volume:
             assert 0 <= volume <= 100

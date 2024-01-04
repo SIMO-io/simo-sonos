@@ -47,6 +47,8 @@ class SONOSPlayer(BaseAudioPlayer):
                     sonos_player.soco.add_to_queue(plst)
                     sonos_player.soco.play_from_queue(0, False)
                     sonos_player.soco.play()
+                    self.component.value = 'playing'
+                    self.component.save()
                 except:
                     print(traceback.format_exc(), file=sys.stderr)
                 return

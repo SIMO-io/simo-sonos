@@ -24,6 +24,7 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
     )
 
     playing_alerts = {}
+    watch_second = 0
 
     def perform_value_send(self, component, value):
         sonos_player = SonosPlayer.objects.get(id=component.config['sonos_device'])
@@ -148,7 +149,16 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
             value='playing'
         ):
             self.comp_state_update(comp)
-        time.sleep(1)
+
+        # Check other players every 60 seconds, just in case...
+        if not self.watch_second % 60:
+            self.watch_second = 0
+            for comp in Component.objects.filter(
+                gateway=self.gateway_instance, base_type='audio-player',
+            ).exclude(value='playing'):
+                self.comp_state_update(comp)
+        else:
+            self.watch_second += 1
 
     def discover_sonos_players(self):
         print("Discover SONOS players.")

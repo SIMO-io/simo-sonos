@@ -33,7 +33,7 @@ class SONOSPlayer(BaseAudioPlayer):
             assert 0 <= volume <= 100
         self.send({"alert": val, 'volume': volume})
 
-    def play_playlist(self, item_id):
+    def play_playlist(self, item_id, shuffle=True):
         from simo_sonos.models import SonosPlayer
         sonos_player = SonosPlayer.objects.filter(
             id=self.component.config['sonos_device']
@@ -44,8 +44,8 @@ class SONOSPlayer(BaseAudioPlayer):
             if plst.item_id == item_id:
                 try:
                     sonos_player.soco.clear_queue()
+                    sonos_player.soco.shuffle = shuffle
                     sonos_player.soco.add_to_queue(plst)
-                    sonos_player.soco.play_from_queue(0, False)
                     sonos_player.soco.play()
                     self.component.value = 'playing'
                     self.component.save()

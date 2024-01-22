@@ -92,6 +92,7 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
             sonos_player.soco.volume = volume
 
         print("Play alert from URI: ", uri)
+        sonos_player.soco.clear_queue()
         sonos_player.soco.play_uri(uri)
         if length != None:
             if length > 60:

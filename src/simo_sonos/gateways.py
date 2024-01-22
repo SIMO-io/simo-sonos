@@ -10,7 +10,6 @@ from simo.core.models import Component
 from simo.core.utils.helpers import get_self_ip
 from simo.multimedia.models import Sound
 from .models import SonosPlayer, SonosPlaylist
-from .models import SonosPlayer
 from .utils import get_sec
 
 

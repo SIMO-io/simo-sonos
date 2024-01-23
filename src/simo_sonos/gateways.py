@@ -27,33 +27,11 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
 
     def perform_value_send(self, component, value):
         sonos_player = SonosPlayer.objects.get(id=component.config['sonos_device'])
-        if value in (
-            'play', 'pause', 'stop', 'next', 'previous',
-        ):
-            getattr(sonos_player.soco, value)()
+        if value == 'check_state':
+            self.comp_state_update(component)
+
         elif isinstance(value, dict):
-            if 'seek' in value:
-                sonos_player.soco.seek(timedelta(seconds=value['seek']))
-            elif 'set_volume' in value:
-                sonos_player.soco.volume = value['set_volume']
-            elif 'shuffle' in value:
-                sonos_player.soco.shuffle = value['shuffle']
-            elif 'loop' in value:
-                sonos_player.soco.repeat = value['loop']
-            elif 'play_from_library' in value:
-                if value['play_from_library'].get('type') != 'sonos_playlist':
-                    return
-                playlist = SonosPlaylist.objects.filter(
-                    id=value['play_from_library'].get('id', 0)
-                ).first()
-                if not playlist:
-                    return
-                sonos_player.play_playlist(playlist)
-            elif 'play_uri' in value:
-                if value.get('volume') != None:
-                    sonos_player.soco.volume = value['volume']
-                sonos_player.soco.play_uri(value['play_uri'])
-            elif 'alert' in value:
+            if 'alert' in value:
                 try:
                     sound_id = int(value['alert'])
                 except:
@@ -69,9 +47,6 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
                         sonos_player, uri, length, value.get('volume')
                     )
                 ).start()
-
-        self.comp_state_update(component)
-
 
     def play_alert(self, sonos_player, uri, length, volume):
         if sonos_player.id not in self.playing_alerts:

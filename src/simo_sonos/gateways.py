@@ -66,8 +66,11 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
             sonos_player.soco.volume = volume
 
         print("Play alert from URI: ", uri)
+        sonos_player.soco.stop()
+        sonos_player.soco.repeat = False
         sonos_player.soco.clear_queue()
         sonos_player.soco.play_uri(uri)
+
         if length != None:
             if length > 60:
                 length = 60
@@ -81,33 +84,47 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
                 ) != 'PLAYING':
                     break
 
-        if self.playing_alerts[sonos_player.id]['timestamp'] == start_timestamp \
-        and self.playing_alerts[sonos_player.id]['uri'] == uri:
+        # Figure out if we must restore to previous state
+        if self.playing_alerts.get(sonos_player.id, {}).get('timestamp', 0) \
+        != start_timestamp:
+            # Other alert has been started
+            return
+        if self.playing_alerts.get(sonos_player.id, {}).get('uri', '') != uri:
+            # Other alert has been started
+            return
 
-            print("Restore original")
-            snap = self.playing_alerts[sonos_player.id]['snap']
-            try:
-                if snap.is_coordinator:
-                    snap._restore_coordinator()
-            finally:
-                snap.device.mute = snap.mute
-                snap.device.bass = snap.bass
-                snap.device.treble = snap.treble
-                snap.device.loudness = snap.loudness
-                snap.device.volume = 0
-                snap.device.ramp_to_volume(
-                    snap.volume, ramp_type='AUTOPLAY_RAMP_TYPE'
-                )
+        current_track_info = sonos_player.soco.get_current_track_info()
+        if current_track_info.get('uri') \
+        and current_track_info.get('uri') != uri:
+            # something else was already added to this player
+            if sonos_player.id in self.playing_alerts:
+                del self.playing_alerts[sonos_player.id]
+            return
 
-            # Now everything is set, see if we need to be playing, stopped
-            # or paused ( only for coordinators)
+        print("Restore original")
+        snap = self.playing_alerts[sonos_player.id]['snap']
+        try:
             if snap.is_coordinator:
-                if snap.transport_state == "PLAYING":
-                    snap.device.play()
-                elif snap.transport_state == "STOPPED":
-                    snap.device.stop()
+                snap._restore_coordinator()
+        finally:
+            snap.device.mute = snap.mute
+            snap.device.bass = snap.bass
+            snap.device.treble = snap.treble
+            snap.device.loudness = snap.loudness
+            snap.device.volume = 0
+            snap.device.ramp_to_volume(
+                snap.volume, ramp_type='AUTOPLAY_RAMP_TYPE'
+            )
 
-            del self.playing_alerts[sonos_player.id]
+        # Now everything is set, see if we need to be playing, stopped
+        # or paused ( only for coordinators)
+        if snap.is_coordinator:
+            if snap.transport_state == "PLAYING":
+                snap.device.play()
+            elif snap.transport_state == "STOPPED":
+                snap.device.stop()
+
+        del self.playing_alerts[sonos_player.id]
 
     def periodic_players_discovery(self):
         # Perform sonos players discovery and state check

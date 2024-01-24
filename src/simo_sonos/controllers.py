@@ -1,5 +1,6 @@
 import traceback
 import sys
+import random
 from datetime import timedelta
 from simo.multimedia.controllers import BaseAudioPlayer
 from simo.core.events import GatewayObjectCommand
@@ -75,7 +76,7 @@ class SONOSPlayer(BaseAudioPlayer):
             self.component.gateway, self.component, set_val='check_state'
         ).publish()
 
-    def play_playlist(self, item_id, shuffle=True):
+    def play_playlist(self, item_id, shuffle=True, repeat=True):
         from simo_sonos.models import SonosPlayer
         sonos_player = SonosPlayer.objects.filter(
             id=self.component.config['sonos_device']
@@ -87,8 +88,14 @@ class SONOSPlayer(BaseAudioPlayer):
                 try:
                     sonos_player.soco.clear_queue()
                     sonos_player.soco.shuffle = shuffle
+                    sonos_player.soco.repeat = repeat
                     sonos_player.soco.add_to_queue(plst)
-                    sonos_player.soco.play()
+                    start_from = 0
+                    if shuffle:
+                        start_from = random.randint(
+                            0, sonos_player.soco.queue_size
+                        )
+                    sonos_player.soco.play_from_queue(start_from)
                     self.component.value = 'playing'
                     self.component.save()
                 except:

@@ -22,6 +22,8 @@ class SONOSPlayer(BaseAudioPlayer):
             id=self.component.config['sonos_device']
         ).first()
         if self.sonos_player:
+            self.component.sonos_player = self.sonos_player
+            self.component.soco = self.sonos_player.soco
             self.soco = self.sonos_player.soco
 
     def unjoin(self):

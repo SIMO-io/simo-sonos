@@ -13,16 +13,22 @@ class SONOSPlayer(BaseAudioPlayer):
     gateway_class = SONOSGatewayHandler
     config_form = SONOSPlayerConfigForm
 
-    def unjoin(self):
-        sonos_player = SonosPlayer.objects.filter(
+    sonos_player = None
+    soco = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sonos_player = SonosPlayer.objects.filter(
             id=self.component.config['sonos_device']
         ).first()
-        if not sonos_player:
+        if self.sonos_player:
+            self.soco = self.sonos_player.soco
+
+    def unjoin(self):
+        if not self.soco:
+            print("NO SOCO player!", file=sys.stderr)
             return
-        try:
-            sonos_player.soco.unjoin()
-        except:
-            print(traceback.format_exc(), file=sys.stderr)
+        self.soco.unjoin()
 
     def play_uri(self, uri, volume=None):
         if volume:
@@ -37,22 +43,22 @@ class SONOSPlayer(BaseAudioPlayer):
         self.send({"alert": val, 'volume': volume})
 
     def _send_to_device(self, value):
-        sonos_player = SonosPlayer.objects.get(
-            id=self.component.config['sonos_device']
-        )
+        if not self.soco:
+            print("NO SOCO player!", file=sys.stderr)
+            return
         if value in (
             'play', 'pause', 'stop', 'next', 'previous',
         ):
-            getattr(sonos_player.soco, value)()
+            getattr(self.soco, value)()
         elif isinstance(value, dict):
             if 'seek' in value:
-                sonos_player.soco.seek(timedelta(seconds=value['seek']))
+                self.soco.seek(timedelta(seconds=value['seek']))
             elif 'set_volume' in value:
-                sonos_player.soco.volume = value['set_volume']
+                self.soco.volume = value['set_volume']
             elif 'shuffle' in value:
-                sonos_player.soco.shuffle = value['shuffle']
+                self.soco.shuffle = value['shuffle']
             elif 'loop' in value:
-                sonos_player.soco.repeat = value['loop']
+                self.soco.repeat = value['loop']
             elif 'play_from_library' in value:
                 if value['play_from_library'].get('type') != 'sonos_playlist':
                     return
@@ -61,11 +67,11 @@ class SONOSPlayer(BaseAudioPlayer):
                 ).first()
                 if not playlist:
                     return
-                sonos_player.play_playlist(playlist)
+                self.play_playlist(playlist)
             elif 'play_uri' in value:
                 if value.get('volume') != None:
-                    sonos_player.soco.volume = value['volume']
-                sonos_player.soco.play_uri(value['play_uri'])
+                    self.soco.volume = value['volume']
+                self.soco.play_uri(value['play_uri'])
             elif 'alert' in value:
                 GatewayObjectCommand(
                     self.component.gateway, self.component,
@@ -77,25 +83,21 @@ class SONOSPlayer(BaseAudioPlayer):
         ).publish()
 
     def play_playlist(self, item_id, shuffle=True, repeat=True):
-        from simo_sonos.models import SonosPlayer
-        sonos_player = SonosPlayer.objects.filter(
-            id=self.component.config['sonos_device']
-        ).first()
-        if not sonos_player:
+        if not self.sonos_player:
             return
-        for plst in sonos_player.soco.get_sonos_playlists():
+        for plst in self.sonos_player.soco.get_sonos_playlists():
             if plst.item_id == item_id:
                 try:
-                    sonos_player.soco.clear_queue()
-                    sonos_player.soco.shuffle = shuffle
-                    sonos_player.soco.repeat = repeat
-                    sonos_player.soco.add_to_queue(plst)
+                    self.soco.clear_queue()
+                    self.soco.shuffle = shuffle
+                    self.soco.repeat = repeat
+                    self.soco.add_to_queue(plst)
                     start_from = 0
                     if shuffle:
                         start_from = random.randint(
-                            0, sonos_player.soco.queue_size
+                            0, self.soco.queue_size
                         )
-                    sonos_player.soco.play_from_queue(start_from)
+                    self.soco.play_from_queue(start_from)
                     self.component.value = 'playing'
                     self.component.save()
                 except:

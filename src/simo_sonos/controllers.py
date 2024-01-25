@@ -90,6 +90,9 @@ class SONOSPlayer(BaseAudioPlayer):
         for plst in self.sonos_player.soco.get_sonos_playlists():
             if plst.item_id == item_id:
                 try:
+                    que_size = self.soco.queue_size
+                    if not que_size:
+                        return
                     self.soco.clear_queue()
                     self.soco.shuffle = shuffle
                     self.soco.repeat = repeat
@@ -97,7 +100,7 @@ class SONOSPlayer(BaseAudioPlayer):
                     start_from = 0
                     if shuffle:
                         start_from = random.randint(
-                            0, self.soco.queue_size
+                            0, que_size - 1
                         )
                     self.soco.play_from_queue(start_from)
                     self.component.value = 'playing'

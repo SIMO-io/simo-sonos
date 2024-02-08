@@ -2,6 +2,7 @@ import traceback
 import sys
 import random
 from datetime import timedelta
+from django.core.exceptions import ValidationError
 from simo.multimedia.controllers import BaseAudioPlayer
 from simo.core.events import GatewayObjectCommand
 from .models import SonosPlayer, SonosPlaylist
@@ -44,45 +45,10 @@ class SONOSPlayer(BaseAudioPlayer):
             assert 0 <= volume <= 100
         self.send({"alert": val, 'volume': volume})
 
-    def _send_to_device(self, value):
+    def _validate_val(self, val, occasion=None):
         if not self.soco:
-            print("NO SOCO player!", file=sys.stderr)
-            return
-        if value in (
-            'play', 'pause', 'stop', 'next', 'previous',
-        ):
-            getattr(self.soco, value)()
-        elif isinstance(value, dict):
-            if 'seek' in value:
-                self.soco.seek(timedelta(seconds=value['seek']))
-            elif 'set_volume' in value:
-                self.soco.volume = value['set_volume']
-            elif 'shuffle' in value:
-                self.soco.shuffle = value['shuffle']
-            elif 'loop' in value:
-                self.soco.repeat = value['loop']
-            elif 'play_from_library' in value:
-                if value['play_from_library'].get('type') != 'sonos_playlist':
-                    return
-                playlist = SonosPlaylist.objects.filter(
-                    id=value['play_from_library'].get('id', 0)
-                ).first()
-                if not playlist:
-                    return
-                self.play_playlist(playlist)
-            elif 'play_uri' in value:
-                if value.get('volume') != None:
-                    self.soco.volume = value['volume']
-                self.soco.play_uri(value['play_uri'])
-            elif 'alert' in value:
-                GatewayObjectCommand(
-                    self.component.gateway, self.component,
-                    set_val=value
-                ).publish()
-
-        GatewayObjectCommand(
-            self.component.gateway, self.component, set_val='check_state'
-        ).publish()
+            raise ValidationError("NO SOCO player!")
+        return super()._validate_val(val, occasion)
 
     def play_playlist(self, item_id, shuffle=True, repeat=True):
         if not self.sonos_player:

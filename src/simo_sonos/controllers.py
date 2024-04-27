@@ -4,7 +4,6 @@ import random
 from datetime import timedelta
 from django.core.exceptions import ValidationError
 from simo.multimedia.controllers import BaseAudioPlayer
-from simo.core.events import GatewayObjectCommand
 from .models import SonosPlayer, SonosPlaylist
 from .gateways import SONOSGatewayHandler
 from .forms import SONOSPlayerConfigForm

@@ -28,6 +28,8 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
     def perform_value_send(self, component, value):
         sonos_player = SonosPlayer.objects.get(id=component.config['sonos_device'])
 
+        print(f"{component}: {value}!")
+
         if value in (
             'play', 'pause', 'stop', 'next', 'previous',
         ):
@@ -285,11 +287,13 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
         )
 
         try:
-            info = sonos_player.get_current_track_info()
+            info = sonos_player.soco.get_current_track_info()
         except:
             sonos_component.alive = False
             sonos_component.save()
             return
+
+        sonos_component.alive = True
 
         sonos_component.meta.update({
             'title': info['title'],

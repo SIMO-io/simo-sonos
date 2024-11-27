@@ -19,7 +19,7 @@ class SONOSPlayer(BaseAudioPlayer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.sonos_player = SonosPlayer.objects.filter(
-            id=self.component.config['sonos_device']
+            id=self.component.config.get('sonos_device')
         ).first()
         if self.sonos_player:
             self.component.sonos_player = self.sonos_player

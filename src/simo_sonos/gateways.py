@@ -1,5 +1,4 @@
-import time
-import threading
+import time, sys, random, traceback, threading
 from datetime import timedelta
 from django.utils import timezone
 from soco import discover, SoCo
@@ -45,13 +44,17 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
             elif 'loop' in value:
                 sonos_player.soco.repeat = value['loop']
             elif 'play_from_library' in value:
-                if value['play_from_library'].get('type') != 'sonos_playlist':
-                    return
                 playlist = SonosPlaylist.objects.filter(
-                    id=value['play_from_library'].get('id', 0)
+                    id=value['play_from_library']
                 ).first()
                 if not playlist:
                     return
+                threading.Thread(
+                    target=self.play_playlist, daemon=True, args=(
+                        component, value['play_from_library'],
+                        value['volume'], value['fade_in'],
+                    )
+                ).start()
                 component.play_playlist(playlist)
             elif 'play_uri' in value:
                 if value.get('volume') != None:
@@ -69,12 +72,53 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
                     length = sound.length
                     uri = f"http://{get_self_ip()}{sound.get_absolute_url()}"
                 threading.Thread(
-                    target=self.play_alert, args=(
+                    target=self.play_alert, daemon=True, args=(
                         sonos_player, uri, length, value.get('volume')
                     )
                 ).start()
 
         self.comp_state_update(component)
+
+
+    def play_playlist(self, component, id, volume, fade_in):
+        soco = component.sonos_player.soco
+        for plst in soco.get_sonos_playlists():
+            if str(plst.item_id) == str(id):
+                try:
+                    self.soco.stop()
+                    self.soco.clear_queue()
+                    self.soco.add_to_queue(plst)
+                    que_size = self.soco.queue_size
+                    if not que_size:
+                        return
+                    start_from = 0
+                    if component.meta.get('shuffle'):
+                        start_from = random.randint(
+                            0, que_size - 1
+                        )
+                    if volume:
+                        if fade_in:
+                            self.soco.volume = 0
+                            self.soco.play_from_queue(start_from)
+                            self.component.value = 'playing'
+                            self.component.save()
+                            fade_step = volume / (fade_in * 4)
+                            for i in range(fade_in * 4):
+                                self.soco.volume = (i + 1) * fade_step
+                                time.sleep(0.25)
+                        else:
+                            self.soco.volume = volume
+                            self.soco.play_from_queue(start_from)
+                            self.component.value = 'playing'
+                            self.component.save()
+                    else:
+                        self.soco.play_from_queue(start_from)
+                        self.component.value = 'playing'
+                        self.component.save()
+                except:
+                    print(traceback.format_exc(), file=sys.stderr)
+                return
+
 
     def play_alert(self, sonos_player, uri, length, volume):
         if sonos_player.id not in self.playing_alerts:

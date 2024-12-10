@@ -32,30 +32,18 @@ class SONOSPlayer(BaseAudioPlayer):
             return
         self.soco.unjoin()
 
-    def play_uri(self, uri, volume=None):
-        if volume:
-            assert 0 <= volume <= 100
-        self.send({"play_uri": uri, 'volume': volume})
-
-    def play_alert(self, val, volume=None):
-        '''Val can be sound id or uri'''
-        assert type(val) in (int, str)
-        if volume:
-            assert 0 <= volume <= 100
-        self.send({"alert": val, 'volume': volume})
-
     def _validate_val(self, val, occasion=None):
         if not self.soco:
             raise ValidationError("NO SOCO player!")
         return super()._validate_val(val, occasion)
 
+    # LEGACY, use play_library_item instead!
     def play_playlist(self, item_id, shuffle=True, repeat=True):
         if not self.sonos_player:
             return
         for plst in self.sonos_player.soco.get_sonos_playlists():
             if plst.item_id == item_id:
                 try:
-
                     self.soco.clear_queue()
                     self.soco.shuffle = shuffle
                     self.soco.repeat = repeat

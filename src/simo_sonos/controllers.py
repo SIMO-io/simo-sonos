@@ -96,6 +96,21 @@ class SONOSPlayer(BaseAudioPlayer):
         self.soco.play_uri(uri)
         self.send('state_update')
 
+    def play_library_item(self, id, volume=None, fade_in=None):
+        '''
+        :param id: Library item ID
+        :param volume: Volume to play at. Current volume will be used if not provided
+        :param fade_in: number of seconds to fade in
+        :return:
+        '''
+        try:
+            SonosPlaylist.objects.get(
+                id=id, player_id=self.component.config['sonos_device']
+            )
+        except SonosPlaylist.DoesNotExist:
+            raise Exception("Media item does not exist on this on this player!")
+        self.send({'play_from_library': id, 'volume': volume, 'fade_in': fade_in})
+
     # LEGACY, use play_library_item instead!
     def play_playlist(self, item_id, shuffle=True, repeat=True):
         if not self.sonos_player:

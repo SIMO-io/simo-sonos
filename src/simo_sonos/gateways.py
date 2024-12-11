@@ -70,10 +70,10 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
         for plst in soco.get_sonos_playlists():
             if plst.item_id == item_id:
                 try:
-                    self.soco.stop()
-                    self.soco.clear_queue()
-                    self.soco.add_to_queue(plst)
-                    que_size = self.soco.queue_size
+                    soco.stop()
+                    soco.clear_queue()
+                    soco.add_to_queue(plst)
+                    que_size = soco.queue_size
                     if not que_size:
                         return
                     start_from = 0
@@ -83,23 +83,23 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
                         )
                     if volume:
                         if fade_in:
-                            self.soco.volume = 0
-                            self.soco.play_from_queue(start_from)
-                            self.component.value = 'playing'
-                            self.component.save()
+                            soco.volume = 0
+                            soco.play_from_queue(start_from)
+                            component.value = 'playing'
+                            component.save()
                             fade_step = volume / (fade_in * 4)
                             for i in range(fade_in * 4):
-                                self.soco.volume = (i + 1) * fade_step
+                                soco.volume = (i + 1) * fade_step
                                 time.sleep(0.25)
                         else:
-                            self.soco.volume = volume
-                            self.soco.play_from_queue(start_from)
-                            self.component.value = 'playing'
-                            self.component.save()
+                            soco.volume = volume
+                            soco.play_from_queue(start_from)
+                            component.value = 'playing'
+                            component.save()
                     else:
-                        self.soco.play_from_queue(start_from)
-                        self.component.value = 'playing'
-                        self.component.save()
+                        soco.play_from_queue(start_from)
+                        component.value = 'playing'
+                        component.save()
                 except:
                     print(traceback.format_exc(), file=sys.stderr)
                 return

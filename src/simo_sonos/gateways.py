@@ -29,61 +29,46 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
 
         print(f"{component}: {value}!")
 
-        if value in (
-            'play', 'pause', 'stop', 'next', 'previous',
-        ):
-            getattr(sonos_player.soco, value)()
+        if value == 'state_update':
+            return self.comp_state_update(component)
 
-        elif isinstance(value, dict):
-            if 'seek' in value:
-                sonos_player.soco.seek(timedelta(seconds=value['seek']))
-            elif 'set_volume' in value:
-                sonos_player.soco.volume = value['set_volume']
-            elif 'shuffle' in value:
-                sonos_player.soco.shuffle = value['shuffle']
-            elif 'loop' in value:
-                sonos_player.soco.repeat = value['loop']
-            elif 'play_from_library' in value:
-                playlist = SonosPlaylist.objects.filter(
-                    id=value['play_from_library']
-                ).first()
-                if not playlist:
-                    return
-                threading.Thread(
-                    target=self.play_playlist, daemon=True, args=(
-                        component, value['play_from_library'],
-                        value['volume'], value['fade_in'],
-                    )
-                ).start()
-                component.play_playlist(playlist)
-            elif 'play_uri' in value:
-                if value.get('volume') != None:
-                    sonos_player.soco.volume = value['volume']
-                sonos_player.soco.play_uri(value['play_uri'])
+        if not isinstance(value, dict):
+            return
 
-            elif 'alert' in value:
-                try:
-                    sound_id = int(value['alert'])
-                except:
-                    uri = value['alert']
-                    length = None
-                else:
-                    sound = Sound.objects.get(pk=sound_id)
-                    length = sound.length
-                    uri = f"http://{get_self_ip()}{sound.get_absolute_url()}"
-                threading.Thread(
-                    target=self.play_alert, daemon=True, args=(
-                        sonos_player, uri, length, value.get('volume')
-                    )
-                ).start()
-
-        self.comp_state_update(component)
+        if 'play_from_library' in value:
+            playlist = SonosPlaylist.objects.filter(
+                id=value['play_from_library']
+            ).first()
+            if not playlist:
+                return
+            threading.Thread(
+                target=self.play_playlist, daemon=True, args=(
+                    component, value['play_from_library'],
+                    value['volume'], value['fade_in'],
+                )
+            ).start()
+        elif 'alert' in value:
+            try:
+                sound_id = int(value['alert'])
+            except:
+                uri = value['alert']
+                length = None
+            else:
+                sound = Sound.objects.get(pk=sound_id)
+                length = sound.length
+                uri = f"http://{get_self_ip()}{sound.get_absolute_url()}"
+            threading.Thread(
+                target=self.play_alert, daemon=True, args=(
+                    sonos_player, uri, length, value.get('volume')
+                )
+            ).start()
 
 
     def play_playlist(self, component, id, volume, fade_in):
         soco = component.sonos_player.soco
+        item_id = SonosPlaylist.objects.get(id=15).item_id
         for plst in soco.get_sonos_playlists():
-            if str(plst.item_id) == str(id):
+            if plst.item_id == item_id:
                 try:
                     self.soco.stop()
                     self.soco.clear_queue()

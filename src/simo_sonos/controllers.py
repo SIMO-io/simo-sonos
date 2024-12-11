@@ -37,6 +37,65 @@ class SONOSPlayer(BaseAudioPlayer):
             raise ValidationError("NO SOCO player!")
         return super()._validate_val(val, occasion)
 
+    def play(self):
+        self.soco.play()
+        self.send('state_update')
+
+    def pause(self):
+        self.soco.pause()
+        self.send('state_update')
+
+    def stop(self):
+        self.soco.stop()
+        self.send('state_update')
+
+    def seek(self, second):
+        self.soco.seek(timedelta(seconds=second))
+        self.send({'seek': second})
+
+    def next(self):
+        self.soco.next()
+        self.send('state_update')
+
+    def previous(self):
+        self.soco.previous()
+        self.send('state_update')
+
+    def set_volume(self, val):
+        assert 0 <= val <= 100
+        self.component.soco.volume = val
+        self.component.meta['volume'] = val
+        self.component.save()
+        self.send('state_update')
+
+    def get_volume(self):
+        return self.component.soco.volume
+
+    def set_shuffle_play(self, val):
+        self.soco.shuffle = bool(val)
+        self.component.meta['shuffle'] = bool(val)
+        self.component.save()
+        self.send('state_update')
+
+    def set_loop_play(self, val):
+        self.soco.repeat = bool(val)
+        self.component.meta['loop'] = bool(val)
+        self.component.save()
+        self.send('state_update')
+
+    def play_uri(self, uri, volume=None):
+        '''
+        Replace que with this single uri and play it immediately
+        :param uri: playable uri or url
+        :param volume: volume at which to play
+        :return:
+        '''
+        if volume:
+            assert 0 <= volume <= 100
+            self.set_volume(volume)
+        self.soco.play_uri(uri)
+        self.send('state_update')
+
     # LEGACY, use play_library_item instead!
     def play_playlist(self, item_id, shuffle=True, repeat=True):
         if not self.sonos_player:

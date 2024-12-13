@@ -290,7 +290,7 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
 
             for comp in Component.objects.filter(
                 gateway=self.gateway_instance, base_type='audio-player',
-                config__sonos_device=player
+                config__sonos_device=player.id
             ):
                 comp.meta['library'] = [
                     {'type': 'sonos_playlist',

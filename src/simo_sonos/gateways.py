@@ -151,9 +151,9 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
         del self.playing_alerts[sonos_player.id]
 
 
-    def play_playlist(self, component, id, volume, fade_in):
+    def play_playlist(self, component, id, volume=None, fade_in=None):
         soco = component.sonos_player.soco
-        item_id = SonosPlaylist.objects.get(id=15).item_id
+        item_id = SonosPlaylist.objects.get(id=id).item_id
         for plst in soco.get_sonos_playlists():
             if plst.item_id == item_id:
                 try:
@@ -168,22 +168,21 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
                         start_from = random.randint(
                             0, que_size - 1
                         )
-                    if volume:
-                        if fade_in:
-                            soco.volume = 0
-                            soco.play_from_queue(start_from)
-                            component.value = 'playing'
-                            component.save()
-                            fade_step = volume / (fade_in * 4)
-                            for i in range(fade_in * 4):
-                                soco.volume = (i + 1) * fade_step
-                                time.sleep(0.25)
-                        else:
-                            soco.volume = volume
-                            soco.play_from_queue(start_from)
-                            component.value = 'playing'
-                            component.save()
+                    if fade_in:
+                        to_volume = volume
+                        if not to_volume:
+                            to_volume = soco.volume
+                        soco.volume = 0
+                        soco.play_from_queue(start_from)
+                        component.value = 'playing'
+                        component.save()
+                        fade_step = to_volume / (fade_in * 4)
+                        for i in range(fade_in * 4):
+                            soco.volume = (i + 1) * fade_step
+                            time.sleep(0.25)
                     else:
+                        if volume:
+                            soco.volume = volume
                         soco.play_from_queue(start_from)
                         component.value = 'playing'
                         component.save()
@@ -283,22 +282,22 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
 
             for pls in sonos.get_sonos_playlists():
                 playlist, new = SonosPlaylist.objects.update_or_create(
-                    item_id=pls.item_id,
-                    player=SonosPlayer.objects.get(uid=sonos.uid),
+                    item_id=pls.item_id, player=player,
                     defaults={'title': pls.title}
                 )
                 playlists.append(playlist)
 
-            if playlists:
-                for comp in Component.objects.filter(
-                    gateway=self.gateway_instance, base_type='audio-player'
-                ):
-                    comp.meta['library'] = [
-                        {'type': 'sonos_playlist',
-                         'id': pls.id, 'title': pls.title}
-                        for pls in playlists
-                    ]
-                    comp.save()
+
+            for comp in Component.objects.filter(
+                gateway=self.gateway_instance, base_type='audio-player',
+                config__sonos_device=player
+            ):
+                comp.meta['library'] = [
+                    {'type': 'sonos_playlist',
+                     'id': pls.id, 'title': pls.title}
+                    for pls in playlists
+                ]
+                comp.save()
 
     def comp_state_update(self, sonos_component):
         print(f"Check {sonos_component} state!")

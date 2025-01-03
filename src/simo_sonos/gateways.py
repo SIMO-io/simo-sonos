@@ -48,26 +48,20 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
                 )
             ).start()
         elif 'alert' in value:
-            if value['alert'] != None:
-                try:
-                    sound_id = int(value['alert'])
-                except:
-                    uri = value['alert']
-                    length = None
-                else:
-                    sound = Sound.objects.get(pk=sound_id)
-                    length = sound.length
-                    uri = f"http://{get_self_ip()}{sound.get_absolute_url()}"
-                threading.Thread(
-                    target=self.play_alert, daemon=True, args=(
-                        sonos_player, uri, length, value.get('volume'),
-                        value.get('loop', False)
-                    )
-                ).start()
-            else:
+            if value['alert'] == None:
                 if sonos_player.id in self.playing_alerts:
                     self.playing_alerts[sonos_player.id]['stop'] = True
-
+            else:
+                alert = Component.objects.filter(id=value['alert']).first()
+                if not alert:
+                    return
+                url = f"http://{get_self_ip()}{alert.config['stream_url']}"
+                threading.Thread(
+                    target=self.play_alert, daemon=True, args=(
+                        sonos_player, url, alert.config['duration'],
+                        alert.config['volume'], alert.config['loop']
+                    )
+                ).start()
 
     def play_alert(self, sonos_player, uri, length, volume, loop):
         start = time.time()
@@ -178,7 +172,7 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
                         component.save()
                         fade_step = to_volume / (fade_in * 4)
                         for i in range(fade_in * 4):
-                            soco.volume = (i + 1) * fade_step
+                            soco.volume = int((i + 1) * fade_step)
                             time.sleep(0.25)
                     else:
                         if volume:

@@ -55,7 +55,7 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
                 alert = Component.objects.filter(id=value['alert']).first()
                 if not alert:
                     return
-                url = f"http://{get_self_ip()}{alert.config['stream_url']}"
+                url = f"http://{get_self_ip()}{alert.config['file_url']}"
                 threading.Thread(
                     target=self.play_alert, daemon=True, args=(
                         sonos_player, url, alert.config['duration'],

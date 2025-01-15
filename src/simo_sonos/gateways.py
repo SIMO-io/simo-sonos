@@ -311,10 +311,11 @@ class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
             'PAUSED_PLAYBACK': 'paused',
             'STOPPED': 'stopped'
         }
-        sonos_component.value = state_map.get(
+        current_state = state_map.get(
             status.get('current_transport_state', 'STOPPED'),
-            'STOPPED'
+            'stopped'
         )
+        sonos_component.set(current_state)
 
         try:
             info = sonos_player.soco.get_current_track_info()

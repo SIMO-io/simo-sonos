@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "simo-sonos"
-version = "1.2.16"
+version = "1.2.17"
 authors = [
-  { name="Simanas Venčkauskas", email="simanas@simo.io" },
+  { name="Simon V.", email="simon@simo.io" },
 ]
 description = "SONOS integration for SIMO.io"
 readme = "README.md"

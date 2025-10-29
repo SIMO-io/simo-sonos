@@ -15,6 +15,7 @@ from .utils import get_sec
 class SONOSGatewayHandler(BaseObjectCommandsGatewayHandler):
     name = "SONOS"
     config_form = BaseGatewayForm
+    auto_create = True
 
     periodic_tasks = (
         ('periodic_players_discovery', 60 * 10),
